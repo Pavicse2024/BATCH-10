@@ -1,59 +1,47 @@
-categories = ['A', 'B', 'C', 'D']
-values = [10, 25, 15, 30]
-
-plt.figure(figsize=(6, 4))
-plt.bar(categories, values, color='purple')
-plt.xlabel("Categories")
-plt.ylabel("Values")
-plt.title("Bar Chart Example")
-plt.show()
-data = np.random.randn(1000)
-
-plt.figure(figsize=(7, 5))
-plt.hist(data, bins=30, color='green', edgecolor='black', alpha=0.7)
-plt.xlabel("Value")
-plt.ylabel("Frequency")
-plt.title("Histogram Example")
-plt.show()
-import seaborn as sns
+import zipfile
 import pandas as pd
+import os
 
-# Creating sample data
-data = np.random.randn(1000)
-df = pd.DataFrame(data, columns=['Values'])
+# Define the path to the uploaded ZIP file
+zip_path = "test.csv"
+extract_dir = "/mnt/data/extracted"
 
-# Plot
-sns.histplot(df['Values'], bins=30, kde=True, color='blue')
-plt.title("Histogram with KDE")
-plt.show()
-tips = sns.load_dataset('tips')
+# Check if the ZIP file exists
+if not os.path.exists(zip_path):
+    print(f"Error: ZIP file not found at {zip_path}")
+    # You might want to exit or handle this error appropriately
+else:
+    # Create the extraction directory if it doesn't exist
+    os.makedirs(extract_dir, exist_ok=True)
 
-plt.figure(figsize=(6, 4))
-sns.boxplot(x=tips['total_bill'])
-plt.title("Box Plot of Total Bill")
-plt.show()
-sns.pairplot(tips, hue='sex')
-plt.show()
-# Convert the 'sex' column to numerical representation using Label Encoding
-from sklearn.preprocessing import LabelEncoder
+    # Extract the ZIP file
+    try:
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_dir)
+        print(f"Successfully extracted ZIP file to {extract_dir}")
 
-encoder = LabelEncoder()
-tips['sex'] = encoder.fit_transform(tips['sex'])
+        # List extracted files
+        extracted_files = os.listdir(extract_dir)
 
-# Convert the 'smoker' column to numerical representation using Label Encoding
-tips['smoker'] = encoder.fit_transform(tips['smoker'])
+        # Attempt to read the first CSV file found
+        csv_file_path = None
+        for file in extracted_files:
+            if file.endswith(".csv"):
+                csv_file_path = os.path.join(extract_dir, file)
+                break
 
-# Convert the 'day' column to numerical representation using Label Encoding
-tips['day'] = encoder.fit_transform(tips['day'])
+        # Load the CSV file into a DataFrame
+        if csv_file_path and os.path.exists(csv_file_path):
+            df = pd.read_csv(csv_file_path)
+            display(df.head()) # Use display() for better notebook output
+        elif not extracted_files:
+             print("Extraction directory is empty.")
+        elif not csv_file_path:
+            print("No CSV file found in the extracted directory.")
+        else:
+            print(f"Error: CSV file not found after extraction at {csv_file_path}")
 
-# Convert the 'time' column to numerical representation using Label Encoding
-tips['time'] = encoder.fit_transform(tips['time'])
-
-
-# Now you can calculate the correlation matrix
-corr_matrix = tips.corr()
-
-plt.figure(figsize=(7, 5))
-sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt=".2f")
-plt.title("Correlation Heatmap")
-plt.show()
+    except zipfile.BadZipFile:
+        print(f"Error: The file {zip_path} is not a valid ZIP file.")
+    except Exception as e:
+        print(f"An unexpected error occurred during ZIP processing: {e}")
